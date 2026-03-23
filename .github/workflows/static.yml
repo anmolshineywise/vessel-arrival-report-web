@@ -45,6 +45,16 @@ jobs:
           npm list rollup @rollup/rollup-linux-x64-gnu 2>/dev/null || echo "Checking native modules..."
           node -e "require('rollup')" && echo "✅ Rollup loaded successfully"
 
+      - name: Verify Terser minifier
+        run: |
+          echo "Checking Terser installation..."
+          npm list terser
+          node -e "require('terser')" && echo "✅ Terser loaded successfully"
+
+      - name: Install Terser if missing
+        run: npm install --save-dev terser
+        continue-on-error: false
+
       - name: Verify build dependencies
         run: |
           echo "Node version: $(node --version)"
