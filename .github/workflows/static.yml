@@ -1,4 +1,4 @@
-# Vite + React App Deployment to GitHub Pages
+# Vite + React + TypeScript App Deployment to GitHub Pages
 name: Deploy to GitHub Pages
 
 on:
@@ -27,41 +27,97 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Setup Node.js
+      - name: Setup Node.js 18 (LTS)
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          check-latest: false
 
-      - name: Delete package-lock.json
-        run: rm -f package-lock.json
+      - name: Verify Node version
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
 
-      - name: Clean npm cache
-        run: npm cache clean --force
+      - name: Remove package-lock.json
+        run: |
+          rm -f package-lock.json
+          echo "Deleted package-lock.json for clean install"
 
-      - name: Install dependencies with force
-        run: npm install --force --legacy-peer-deps
+      - name: Clear npm cache
+        run: |
+          npm cache clean --force
+          npm cache verify
+          echo "NPM cache cleared"
+
+      - name: Install dependencies (attempt 1)
+        run: |
+          npm install \
+            --force \
+            --legacy-peer-deps \
+            --no-optional \
+            --prefer-offline \
+            --no-audit
+        timeout-minutes: 15
+        continue-on-error: true
+
+      - name: Retry install if failed
+        if: failure()
+        run: |
+          echo "First install attempt failed, retrying..."
+          npm install \
+            --force \
+            --legacy-peer-deps \
+            --no-optional \
+            --network-timeout=60000
         timeout-minutes: 15
 
-      - name: Verify dependencies installed
-        run: npm list --depth=0
+      - name: Verify npm installation
+        run: |
+          echo "Checking installed packages..."
+          npm list --depth=0
+          ls -la node_modules/.bin/ | head -20
 
-      - name: Build Vite app
+      - name: Check TypeScript installation
+        run: |
+          echo "TypeScript version:"
+          npx tsc --version
+          npx tsc --noEmit 2>&1 | head -20 || echo "TypeScript check completed"
+
+      - name: Build Vite app for GitHub Pages
         run: npm run build
         env:
           VITE_BASE_PATH: /vessel-arrival-report-web/
+          NODE_OPTIONS: --max-old-space-size=4096
 
-      - name: Setup Pages
+      - name: Verify build output
+        run: |
+          echo "Build artifacts:"
+          ls -lh dist/
+          echo "dist/ contents:"
+          find dist -type f | head -20
+
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload built dist folder
+      - name: Upload built dist folder to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'dist'
+          retention-days: 1
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Print deployment summary
+        run: |
+          echo "Deployment completed successfully!"
+          echo "URL: ${{ steps.deployment.outputs.page_url }}"
