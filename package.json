@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:gh-pages": "vite build --base=/vessel-arrival-report-web/",
     "preview": "vite preview",
+    "deploy:gh-pages": "npm run build:gh-pages && gh-pages -d dist",
     "mock:server": "node server/index.js",
     "send:update": "node scripts/send_update.js",
     "start": "vite",
@@ -26,6 +28,7 @@
     "@testing-library/react": "^14.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "cross-env": "^7.0.3",
+    "gh-pages": "^6.0.0",
     "jsdom": "^27.3.0",
     "msw": "^1.2.1",
     "nodemon": "^2.0.22",

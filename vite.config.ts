@@ -2,7 +2,18 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  // GitHub Pages base path - update if deploying to a project repo
+  // Use '/' for user pages, or '/repo-name/' for project repos
+  base: process.env.VITE_BASE_PATH || '/',
+
   plugins: [react()],
+
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser'
+  },
+
   server: {
     port: 5173,
     proxy: {
