@@ -235,7 +235,12 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
   }
 
   const isProduction = !import.meta.env.DEV
-  const apiKey = 'eyJ4NXQjUzI1NiI6Ik16Umpaak14Tmprek9XUmlaR1ppTmpCaU5tVm1PRGd5T1dJNE9URTJaamc1TkRrellUY3pNbUU0TldNeE0yUTRaV1psTlRSalpERmlaVFE0TW1WaFlnPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJhc2xpUmF0YW5AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsiaWQiOjU4MSwidXVpZCI6IjM3Mjk0ZTBlLWQ0ZWEtNDUzOS05NDhlLTgyNGM0MTRhMmUxMCJ9LCJpc3MiOiJodHRwczpcL1wvb2NlYW5zLXgubXBhLmdvdi5zZzo5NDQzXC9vYXV0aDJcL3Rva2VuIiwia2V5dHlwZSI6IlBST0RVQ1RJT04iLCJleHAiOjE3NzQyNDQ2NDMsInRva2VuX3R5cGUiOiJhcGlLZXkiLCJpYXQiOjE3NzQyNDEwNDMsImp0aSI6IjkxODhkNjVhLTNmNjktNDE1Ny1iNjY2LWE3OGJhNTBhM2FmNiJ9.tlZuSANIuO2BSstPTS7mAeKDG0dUcklBm6SEyhndCFN2aEogEhMdmgtC40ZgZS6Z-YpD_FveGgZbfxpV1UolYk_tbutUUQC4kQVOm6OgzHy_qlexeanT-X-YLEGVIV4XNE0ULhPadV2CFbvKdF8-00V-wk_qiPj72HLtZXRIrOWIZEbqUssHWJz8-2kxAOVhrB0g8pKr8q2d0IFiOVbmFFNZkJo1gufvX3Rtl991DP1sft14vwJf0_Q_sVeDYJJPB3I860LLf0jH2Vah4ioUp8rwJAv-K3_5SdqusUmT2ZiJeBS5cTmHRoKP9QMTEAQ5v_IOI0pBv_P1ywLFyDxQww=='
+  
+  // Get credentials from environment
+  // OAuth2: Use access token from production credentials
+  // Fallback: Use ApiKey for development/demo
+  const oauthAccessToken = (import.meta.env as any).VITE_OAUTH_ACCESS_TOKEN
+  const legacyApiKey = (import.meta.env as any).VMS_ARRIVALS_API_KEY
 
   // Development: try local proxy first, then direct call
   // Production (GitHub Pages): call external API directly
@@ -245,7 +250,15 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
   // In development, try local proxy first
   if (!isProduction) {
     try {
-      const headers = { 'Accept': 'application/json', 'ApiKey': apiKey }
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      
+      // Use OAuth2 token if available, otherwise fallback to ApiKey
+      if (oauthAccessToken) {
+        headers['Authorization'] = `Bearer ${oauthAccessToken}`
+      } else if (legacyApiKey) {
+        headers['ApiKey'] = legacyApiKey
+      }
+      
       console.log('[fetchArrivals] DEV - attempting local proxy:', proxyUrl)
       const res = await fetch(proxyUrl, { headers })
       
@@ -263,16 +276,26 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
 
   // Fallback to direct external API call (for production GitHub Pages or when proxy fails)
   try {
-    const headers = {
-      'Accept': 'application/json',
-      'ApiKey': apiKey
+    const headers: Record<string, string> = {
+      'Accept': 'application/json'
+    }
+    
+    // Use OAuth2 token if available, otherwise fallback to ApiKey
+    if (oauthAccessToken) {
+      headers['Authorization'] = `Bearer ${oauthAccessToken}`
+      console.log('[fetchArrivals] Using OAuth2 authentication')
+    } else if (legacyApiKey) {
+      headers['ApiKey'] = legacyApiKey
+      console.log('[fetchArrivals] Using legacy ApiKey authentication')
+    } else {
+      console.warn('[fetchArrivals] No authentication credentials found in environment')
     }
     
     console.log('[fetchArrivals] API Call:', {
       url: externalUrl,
       method: 'GET',
       environment: isProduction ? 'production' : 'development',
-      headers: { ...headers, ApiKey: 'eyJ4NXQjUzI1NiI6Ik16Umpaak14Tmprek9XUmlaR1ppTmpCaU5tVm1PRGd5T1dJNE9URTJaamc1TkRrellUY3pNbUU0TldNeE0yUTRaV1psTlRSalpERmlaVFE0TW1WaFlnPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJhc2xpUmF0YW5AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsiaWQiOjU4MSwidXVpZCI6IjM3Mjk0ZTBlLWQ0ZWEtNDUzOS05NDhlLTgyNGM0MTRhMmUxMCJ9LCJpc3MiOiJodHRwczpcL1wvb2NlYW5zLXgubXBhLmdvdi5zZzo5NDQzXC9vYXV0aDJcL3Rva2VuIiwia2V5dHlwZSI6IlBST0RVQ1RJT04iLCJleHAiOjE3NzQyNDQ2NDMsInRva2VuX3R5cGUiOiJhcGlLZXkiLCJpYXQiOjE3NzQyNDEwNDMsImp0aSI6IjkxODhkNjVhLTNmNjktNDE1Ny1iNjY2LWE3OGJhNTBhM2FmNiJ9.tlZuSANIuO2BSstPTS7mAeKDG0dUcklBm6SEyhndCFN2aEogEhMdmgtC40ZgZS6Z-YpD_FveGgZbfxpV1UolYk_tbutUUQC4kQVOm6OgzHy_qlexeanT-X-YLEGVIV4XNE0ULhPadV2CFbvKdF8-00V-wk_qiPj72HLtZXRIrOWIZEbqUssHWJz8-2kxAOVhrB0g8pKr8q2d0IFiOVbmFFNZkJo1gufvX3Rtl991DP1sft14vwJf0_Q_sVeDYJJPB3I860LLf0jH2Vah4ioUp8rwJAv-K3_5SdqusUmT2ZiJeBS5cTmHRoKP9QMTEAQ5v_IOI0pBv_P1ywLFyDxQww==' },
+      authType: oauthAccessToken ? 'OAuth2 Bearer' : (legacyApiKey ? 'ApiKey' : 'none'),
       date
     })
 
