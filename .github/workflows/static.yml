@@ -35,8 +35,15 @@ jobs:
       - name: Clean install dependencies
         run: |
           rm -rf node_modules package-lock.json
-          npm install --force --legacy-peer-deps --no-optional
+          npm install --force --legacy-peer-deps
         timeout-minutes: 15
+
+      - name: Verify Rollup native modules
+        run: |
+          echo "Checking Rollup installation..."
+          ls -la node_modules/@rollup/ | head -20
+          npm list rollup @rollup/rollup-linux-x64-gnu 2>/dev/null || echo "Checking native modules..."
+          node -e "require('rollup')" && echo "✅ Rollup loaded successfully"
 
       - name: Verify build dependencies
         run: |
