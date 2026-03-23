@@ -48,4 +48,19 @@ export interface Report {
   categories?: Category[]
   documents?: { name: string; url: string }[]
   notes?: string
-} 
+}
+
+// Vessel Arrivals Types (for date-based arrivals search)
+export interface VesselParticulars {
+  vesselName: string
+  callSign: string
+  imoNumber: string
+  flag: string
+}
+
+export interface VesselArrival {
+  vesselParticulars: VesselParticulars
+  arrivedTime: string        // "2026-03-23 00:10:00"
+  locationFrom: string       // "SEAE"
+  locationTo: string         // "PEBGC"
+}

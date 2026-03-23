@@ -12,6 +12,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/vessel/, '/api/vessel')
+      },
+      // Proxy /api/arrivals/* -> local Express server (during development)
+      // In production (Vercel), /api/* automatically routes to serverless functions
+      '^/api/arrivals/.*': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
       }
     }
   }

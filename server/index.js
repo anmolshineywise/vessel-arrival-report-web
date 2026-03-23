@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const path = require('path')
@@ -93,6 +94,103 @@ app.get('/vessel/:imo', async (req, res) => {
   } catch (err) {
     console.error('Error proxying vessel request', err)
     return res.status(502).json({ error: 'Failed to fetch vessel data', detail: String(err) })
+  }
+})
+
+// Proxy arrivals API to avoid CORS and inject API key server-side
+// GET /api/arrivals/:date -> fetches oceans-x.mpa.gov.sg arrivals API server-side
+app.get('/api/arrivals/:date', async (req, res) => {
+  const date = req.params.date
+
+  // Validate date parameter
+  if (!date) {
+    return res.status(400).json({ error: 'Missing date parameter' })
+  }
+
+  // Validate date format (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({
+      error: 'Invalid date format',
+      detail: 'Date must be in YYYY-MM-DD format (e.g., 2026-03-23)'
+    })
+  }
+
+  // Get API key from environment
+  const apiKey = process.env.VMS_ARRIVALS_API_KEY
+  if (!apiKey) {
+    console.error('[arrivals proxy] Missing VMS_ARRIVALS_API_KEY environment variable')
+    return res.status(500).json({
+      error: 'Configuration error',
+      detail: 'API key not configured'
+    })
+  }
+
+  const url = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
+  console.log(`[arrivals proxy] /api/arrivals/${date} -> ${url}`)
+
+  try {
+    // Add timeout to avoid hanging
+    const controller = new AbortController()
+    const timeoutMs = 8000
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+    let r
+    try {
+      r = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'ApiKey': apiKey
+        }
+      })
+    } catch (fetchErr) {
+      clearTimeout(timeout)
+      if (fetchErr && fetchErr.name === 'AbortError') {
+        console.error('[arrivals proxy] external fetch aborted (timeout)')
+        return res.status(504).json({
+          error: 'Upstream timeout',
+          detail: `No response within ${timeoutMs}ms`
+        })
+      }
+      console.error('[arrivals proxy] fetch error', fetchErr)
+      return res.status(502).json({
+        error: 'Failed to fetch arrivals data',
+        detail: String(fetchErr)
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
+
+    console.log('[arrivals proxy] external status:', r.status)
+    const contentType = r.headers.get('content-type') || ''
+
+    // Read body as text first
+    const bodyText = await r.text()
+    console.log('[arrivals proxy] external body snippet:', bodyText.substring(0, 500))
+
+    if (!r.ok) {
+      // Forward status and body
+      try {
+        const parsed = JSON.parse(bodyText)
+        return res.status(r.status).json(parsed)
+      } catch (_) {
+        return res.status(r.status).type('text').send(bodyText)
+      }
+    }
+
+    // Try parse JSON
+    try {
+      const json = JSON.parse(bodyText)
+      return res.json(json)
+    } catch (_) {
+      return res.type('text').send(bodyText)
+    }
+  } catch (err) {
+    console.error('[arrivals proxy] Error proxying arrivals request', err)
+    return res.status(502).json({
+      error: 'Failed to fetch arrivals data',
+      detail: String(err)
+    })
   }
 })
 

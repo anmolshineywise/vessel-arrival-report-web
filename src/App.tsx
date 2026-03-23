@@ -1,23 +1,14 @@
 import React from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
-import SearchPage from './pages/SearchPage'
-import ReportPage from './pages/ReportPage'
-import DemoDownloadPage from './pages/DemoDownloadPage'
+import ArrivalsPage from './pages/ArrivalsPage'
 
 export default function App() {
   return (
     <div>
-      <header style={{ padding: 16, borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link to="/" style={{ textDecoration: 'none', color: '#fff' }}>
-          <h1 style={{ margin: 0 }}>Inspection Reports</h1>
-        </Link>
+      <header style={{ padding: 16, borderBottom: '1px solid #ddd' }}>
+        <h1 style={{ margin: 0, color: '#fff' }}>Vessel Arrivals Report</h1>
       </header>
       <main style={{ padding: 16 }}>
-        <Routes>
-          <Route path="/" element={<SearchPage />} />
-          <Route path="/demo-download" element={<DemoDownloadPage />} />
-          <Route path="/reports/:reportId" element={<ReportPage />} />
-        </Routes>
+        <ArrivalsPage />
       </main>
     </div>
   )
