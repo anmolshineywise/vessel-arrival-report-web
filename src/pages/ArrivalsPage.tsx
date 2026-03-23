@@ -4,10 +4,8 @@ import { VesselArrival } from "../types";
 import ArrivalsTable from "../components/ArrivalsTable";
 
 export default function ArrivalsPage() {
-  // Initialize with today's date in YYYY-MM-DD format
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return new Date().toISOString().split("T")[0];
-  });
+  // Initialize with demo date for client presentation
+  const [selectedDate, setSelectedDate] = useState<string>("2026-03-23");
   const [arrivals, setArrivals] = useState<VesselArrival[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

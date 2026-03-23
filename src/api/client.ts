@@ -1,4 +1,6 @@
 import { Report, ReportSummary, VesselArrival } from '../types'
+import { DEMO_ARRIVALS_DATA } from '../demoData'
+
 
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
@@ -232,6 +234,14 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
   // Validate date format (YYYY-MM-DD)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error('Invalid date format. Use YYYY-MM-DD')
+  }
+
+  // FOR DEMO: Return static data for 2026-03-23
+  if (date === '2026-03-23') {
+    console.log('[fetchArrivals] DEMO MODE - Returning static data for 2026-03-23')
+    // Simulate API delay for realistic demo experience
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return DEMO_ARRIVALS_DATA
   }
 
   const isProduction = !import.meta.env.DEV
