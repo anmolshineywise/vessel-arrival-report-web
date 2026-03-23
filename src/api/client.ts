@@ -235,33 +235,20 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
   }
 
   const isProduction = !import.meta.env.DEV
-  
-  // Get credentials from environment
-  // OAuth2: Use access token from production credentials
-  // Fallback: Use ApiKey for development/demo
-  const oauthAccessToken = (import.meta.env as any).VITE_OAUTH_ACCESS_TOKEN
-  const legacyApiKey = (import.meta.env as any).VMS_ARRIVALS_API_KEY
 
-  // Development: try local proxy first, then direct call
-  // Production (GitHub Pages): call external API directly
+  // In development, use local proxy first
+  // In production (GitHub Pages), use direct API call (which proxies through server)
   const externalUrl = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
   const proxyUrl = `/api/arrivals/${encodeURIComponent(date)}`
 
-  // In development, try local proxy first
+  // In development, try local proxy first (more reliable)
   if (!isProduction) {
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' }
-      
-      // Use OAuth2 token if available, otherwise fallback to ApiKey
-      if (oauthAccessToken) {
-        headers['Authorization'] = `Bearer ${oauthAccessToken}`
-      } else if (legacyApiKey) {
-        headers['ApiKey'] = legacyApiKey
-      }
-      
+
       console.log('[fetchArrivals] DEV - attempting local proxy:', proxyUrl)
       const res = await fetch(proxyUrl, { headers })
-      
+
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) {
@@ -274,28 +261,18 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
     }
   }
 
-  // Fallback to direct external API call (for production GitHub Pages or when proxy fails)
+  // Fallback to direct external API call
+  // Note: Token refresh is handled server-side by the proxy
   try {
     const headers: Record<string, string> = {
       'Accept': 'application/json'
     }
-    
-    // Use OAuth2 token if available, otherwise fallback to ApiKey
-    if (oauthAccessToken) {
-      headers['Authorization'] = `Bearer ${oauthAccessToken}`
-      console.log('[fetchArrivals] Using OAuth2 authentication')
-    } else if (legacyApiKey) {
-      headers['ApiKey'] = legacyApiKey
-      console.log('[fetchArrivals] Using legacy ApiKey authentication')
-    } else {
-      console.warn('[fetchArrivals] No authentication credentials found in environment')
-    }
-    
+
     console.log('[fetchArrivals] API Call:', {
       url: externalUrl,
       method: 'GET',
       environment: isProduction ? 'production' : 'development',
-      authType: oauthAccessToken ? 'OAuth2 Bearer' : (legacyApiKey ? 'ApiKey' : 'none'),
+      authType: 'OAuth2 (server-side)',
       date
     })
 
@@ -314,7 +291,7 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
     }
 
     const data = await res.json()
-    
+
     console.log('[fetchArrivals] API Response Data:', {
       count: Array.isArray(data) ? data.length : 'not-array',
       data
