@@ -32,10 +32,17 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
+      - name: Clean install dependencies
         run: |
+          rm -rf node_modules package-lock.json
           npm install --force --legacy-peer-deps --no-optional
         timeout-minutes: 15
+
+      - name: Verify build dependencies
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          npm list --depth=0
 
       - name: Build app
         run: npm run build -- --base=/${{ github.event.repository.name }}/
@@ -53,3 +60,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 URL: ${{ steps.deployment.outputs.page_url }}"
