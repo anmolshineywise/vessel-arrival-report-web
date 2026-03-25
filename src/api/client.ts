@@ -239,8 +239,10 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
   // API Key for Oceans-X Vessel Arrivals API
   const apiKey = 'eyJ4NXQjUzI1NiI6Ik16Umpaak14Tmprek9XUmlaR1ppTmpCaU5tVm1PRGd5T1dJNE9URTJaamc1TkRrellUY3pNbUU0TldNeE0yUTRaV1psTlRSalpERmlaVFE0TW1WaFlnPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJhc2xpUmF0YW5AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsiaWQiOjU4OCwidXVpZCI6IjEyN2ViNjI0LTc0MTEtNGI2OS04MTQ0LTdiNWEyNTQ1ZTEzMSJ9LCJpc3MiOiJodHRwczpcL1wvb2NlYW5zLXgubXBhLmdvdi5zZzo5NDQzXC9vYXV0aDJcL3Rva2VuIiwia2V5dHlwZSI6IlBST0RVQ1RJT04iLCJwZXJtaXR0ZWRSZWZlcmVyIjoiIiwidG9rZW5fdHlwZSI6ImFwaUtleSIsInBlcm1pdHRlZElQIjoiIiwiaWF0IjoxNzc0NDE4MjMwLCJqdGkiOiIxODY0MzRmMi1jMTQxLTRjNmItOWUwNS1hOWY3ODBkYzI2MmQifQ==.lyHZazyTLiv-iSFUeI8TFkVpbPKxhFlfv-NNFkWsAOzUacYOI-bg_MkrVadwhhVVJpUTFhIXOmQ7qufjP5CeuQl1a9Ye7SKvFJIk5sNIxUvtqr45wY1Y5FJBOIewxzENJ7C0r3tLO_vwKB97XdsdLjG3pN0uxSnAeZdPcEZExx3ouj0uwF687Z40jCuJ3jvaBWdwL83Jb5awEFfQ9hTOBnTrn13oGlDJrOVhnOTACf85DdmzF9S_VvA_6tgcgOvoA9dTzln4_kk1sywLGKekHrO8eQnGqhhFOsFV0kY8WdsFOUrxbn3kr_e8VczE8ApMglZY_eUsUxysND1H8krpYQ=='
 
+  // External API URL
+  const externalApiUrl = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
+
   // In development: use local proxy
-  // In production (GitHub Pages): call API directly
   if (!isProduction) {
     try {
       const proxyUrl = `/api/arrivals/${encodeURIComponent(date)}`
@@ -258,14 +260,16 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
     }
   }
 
-  // Production: call external API directly
-  const externalUrl = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
+  // Production (GitHub Pages): Use CORS proxy to bypass CORS restrictions
+  // The corsproxy.io service adds CORS headers to the response
+  const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(externalApiUrl)}`
 
   try {
-    console.log('[fetchArrivals] Calling external API:', externalUrl)
-    const res = await fetch(externalUrl, {
+    console.log('[fetchArrivals] PROD - using CORS proxy:', corsProxyUrl)
+    const res = await fetch(corsProxyUrl, {
       headers: {
         'Accept': 'application/json',
+        'x-requested-with': 'XMLHttpRequest',
         'ApiKey': apiKey
       }
     })
