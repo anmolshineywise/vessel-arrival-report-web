@@ -234,14 +234,16 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
     throw new Error('Invalid date format. Use YYYY-MM-DD')
   }
 
-  // Always use the server-side proxy to keep the API key secure
-  // In dev: proxies to localhost:3000 (Express server)
-  // In prod: proxies to /api/arrivals serverless function (Vercel)
-  const proxyUrl = `/api/arrivals/${encodeURIComponent(date)}`
+  // For GitHub Pages: use Cloudflare Worker URL from env
+  // For local dev / Vercel: use relative proxy path
+  const workerUrl = (import.meta.env as any).VITE_ARRIVALS_WORKER_URL
+  const apiUrl = workerUrl
+    ? `${workerUrl}/arrivals/${encodeURIComponent(date)}`
+    : `/api/arrivals/${encodeURIComponent(date)}`
 
   try {
-    console.log('[fetchArrivals] Calling proxy:', proxyUrl)
-    const res = await fetch(proxyUrl, {
+    console.log('[fetchArrivals] Calling:', apiUrl)
+    const res = await fetch(apiUrl, {
       headers: { 'Accept': 'application/json' }
     })
 
