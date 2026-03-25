@@ -234,75 +234,30 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
     throw new Error('Invalid date format. Use YYYY-MM-DD')
   }
 
-  const isProduction = !import.meta.env.DEV
-  const apiKey = 'eyJ4NXQjUzI1NiI6Ik16Umpaak14Tmprek9XUmlaR1ppTmpCaU5tVm1PRGd5T1dJNE9URTJaamc1TkRrellUY3pNbUU0TldNeE0yUTRaV1psTlRSalpERmlaVFE0TW1WaFlnPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJhc2xpUmF0YW5AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsiaWQiOjU4MSwidXVpZCI6IjM3Mjk0ZTBlLWQ0ZWEtNDUzOS05NDhlLTgyNGM0MTRhMmUxMCJ9LCJpc3MiOiJodHRwczpcL1wvb2NlYW5zLXgubXBhLmdvdi5zZzo5NDQzXC9vYXV0aDJcL3Rva2VuIiwia2V5dHlwZSI6IlBST0RVQ1RJT04iLCJleHAiOjE3NzQyNDQ2NDMsInRva2VuX3R5cGUiOiJhcGlLZXkiLCJpYXQiOjE3NzQyNDEwNDMsImp0aSI6IjkxODhkNjVhLTNmNjktNDE1Ny1iNjY2LWE3OGJhNTBhM2FmNiJ9.tlZuSANIuO2BSstPTS7mAeKDG0dUcklBm6SEyhndCFN2aEogEhMdmgtC40ZgZS6Z-YpD_FveGgZbfxpV1UolYk_tbutUUQC4kQVOm6OgzHy_qlexeanT-X-YLEGVIV4XNE0ULhPadV2CFbvKdF8-00V-wk_qiPj72HLtZXRIrOWIZEbqUssHWJz8-2kxAOVhrB0g8pKr8q2d0IFiOVbmFFNZkJo1gufvX3Rtl991DP1sft14vwJf0_Q_sVeDYJJPB3I860LLf0jH2Vah4ioUp8rwJAv-K3_5SdqusUmT2ZiJeBS5cTmHRoKP9QMTEAQ5v_IOI0pBv_P1ywLFyDxQww=='
-
-  // Development: try local proxy first, then direct call
-  // Production (GitHub Pages): call external API directly
-  const externalUrl = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
+  // Always use the server-side proxy to keep the API key secure
+  // In dev: proxies to localhost:3000 (Express server)
+  // In prod: proxies to /api/arrivals serverless function (Vercel)
   const proxyUrl = `/api/arrivals/${encodeURIComponent(date)}`
 
-  // In development, try local proxy first
-  if (!isProduction) {
-    try {
-      const headers = { 'Accept': 'application/json', 'ApiKey': apiKey }
-      console.log('[fetchArrivals] DEV - attempting local proxy:', proxyUrl)
-      const res = await fetch(proxyUrl, { headers })
-      
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data)) {
-          console.log('[fetchArrivals] Success via local proxy -', data.length, 'arrivals')
-          return data as VesselArrival[]
-        }
-      }
-    } catch (err) {
-      console.warn('[fetchArrivals] Local proxy failed, trying direct call:', err)
-    }
-  }
-
-  // Fallback to direct external API call (for production GitHub Pages or when proxy fails)
   try {
-    const headers = {
-      'Accept': 'application/json',
-      'ApiKey': apiKey
-    }
-    
-    console.log('[fetchArrivals] API Call:', {
-      url: externalUrl,
-      method: 'GET',
-      environment: isProduction ? 'production' : 'development',
-      headers: { ...headers, ApiKey: 'eyJ4NXQjUzI1NiI6Ik16Umpaak14Tmprek9XUmlaR1ppTmpCaU5tVm1PRGd5T1dJNE9URTJaamc1TkRrellUY3pNbUU0TldNeE0yUTRaV1psTlRSalpERmlaVFE0TW1WaFlnPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJhc2xpUmF0YW5AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsiaWQiOjU4OCwidXVpZCI6IjEyN2ViNjI0LTc0MTEtNGI2OS04MTQ0LTdiNWEyNTQ1ZTEzMSJ9LCJpc3MiOiJodHRwczpcL1wvb2NlYW5zLXgubXBhLmdvdi5zZzo5NDQzXC9vYXV0aDJcL3Rva2VuIiwia2V5dHlwZSI6IlBST0RVQ1RJT04iLCJwZXJtaXR0ZWRSZWZlcmVyIjoiIiwidG9rZW5fdHlwZSI6ImFwaUtleSIsInBlcm1pdHRlZElQIjoiIiwiaWF0IjoxNzc0NDE4MjMwLCJqdGkiOiIxODY0MzRmMi1jMTQxLTRjNmItOWUwNS1hOWY3ODBkYzI2MmQifQ==.lyHZazyTLiv-iSFUeI8TFkVpbPKxhFlfv-NNFkWsAOzUacYOI-bg_MkrVadwhhVVJpUTFhIXOmQ7qufjP5CeuQl1a9Ye7SKvFJIk5sNIxUvtqr45wY1Y5FJBOIewxzENJ7C0r3tLO_vwKB97XdsdLjG3pN0uxSnAeZdPcEZExx3ouj0uwF687Z40jCuJ3jvaBWdwL83Jb5awEFfQ9hTOBnTrn13oGlDJrOVhnOTACf85DdmzF9S_VvA_6tgcgOvoA9dTzln4_kk1sywLGKekHrO8eQnGqhhFOsFV0kY8WdsFOUrxbn3kr_e8VczE8ApMglZY_eUsUxysND1H8krpYQ==' },
-      date
-    })
-
-    const res = await fetch(externalUrl, { headers, mode: 'cors' })
-
-    console.log('[fetchArrivals] API Response:', {
-      status: res.status,
-      statusText: res.statusText,
-      url: res.url
+    console.log('[fetchArrivals] Calling proxy:', proxyUrl)
+    const res = await fetch(proxyUrl, {
+      headers: { 'Accept': 'application/json' }
     })
 
     if (!res.ok) {
       const text = await res.text().catch(() => '')
-      console.error('[fetchArrivals] API Error Response:', text)
+      console.error('[fetchArrivals] API Error:', res.status, text)
       throw new Error(`API Error: ${res.status} - ${text}`)
     }
 
     const data = await res.json()
-    
-    console.log('[fetchArrivals] API Response Data:', {
-      count: Array.isArray(data) ? data.length : 'not-array',
-      data
-    })
 
-    // Validate response is an array
     if (!Array.isArray(data)) {
       throw new Error('Invalid response format: expected array')
     }
 
-    console.log('[fetchArrivals] Success - received', data.length, 'arrivals')
+    console.log('[fetchArrivals] Success -', data.length, 'arrivals')
     return data as VesselArrival[]
   } catch (err: any) {
     console.error('[fetchArrivals] Error:', err)
