@@ -280,10 +280,33 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
       throw new Error(`API Error: ${res.status} - ${text}`)
     }
 
-    const data = await res.json()
+    // Get response text first to handle empty responses
+    const text = await res.text()
 
+    // Handle empty response (no data for this date)
+    if (!text || text.trim() === '') {
+      console.log('[fetchArrivals] No data for this date (empty response)')
+      return []
+    }
+
+    // Parse JSON
+    let data
+    try {
+      data = JSON.parse(text)
+    } catch (parseErr) {
+      console.error('[fetchArrivals] JSON parse error:', parseErr, 'Response:', text.substring(0, 200))
+      throw new Error('No vessel arrivals data available for this date')
+    }
+
+    // Handle case where API returns error object
+    if (data && data.error) {
+      throw new Error(data.error.message || 'API returned an error')
+    }
+
+    // Handle empty array
     if (!Array.isArray(data)) {
-      throw new Error('Invalid response format: expected array')
+      console.warn('[fetchArrivals] Response is not an array:', data)
+      return []
     }
 
     console.log('[fetchArrivals] Success -', data.length, 'arrivals')

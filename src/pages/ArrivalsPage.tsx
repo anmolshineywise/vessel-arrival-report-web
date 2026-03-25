@@ -60,7 +60,13 @@ export default function ArrivalsPage() {
       </form>
 
       {error && (
-        <div style={{ color: "red", marginBottom: 16, padding: 16 }}>
+        <div style={{
+          color: error.includes("No vessel") ? "#666" : "red",
+          marginBottom: 16,
+          padding: 16,
+          backgroundColor: error.includes("No vessel") ? "#f5f5f5" : "#fff0f0",
+          borderRadius: 8
+        }}>
           {error}
         </div>
       )}
