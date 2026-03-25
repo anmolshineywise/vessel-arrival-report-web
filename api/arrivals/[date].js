@@ -1,5 +1,3 @@
-const { getAccessToken } = require('../utils/oauth2')
-
 module.exports = async (req, res) => {
   const { date } = req.query || {}
 
@@ -16,21 +14,19 @@ module.exports = async (req, res) => {
     })
   }
 
+  // Get API key from environment
+  const apiKey = process.env.VMS_ARRIVALS_API_KEY
+  if (!apiKey) {
+    console.error('[api/arrivals] Missing VMS_ARRIVALS_API_KEY environment variable')
+    return res.status(500).json({
+      error: 'Configuration error',
+      detail: 'API key not configured'
+    })
+  }
+
   const url = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
 
   try {
-    // Get OAuth2 access token (will refresh if needed)
-    let accessToken
-    try {
-      accessToken = await getAccessToken()
-    } catch (err) {
-      console.error('[api/arrivals] Failed to obtain OAuth2 access token:', err.message)
-      return res.status(500).json({
-        error: 'Authentication error',
-        detail: 'Failed to obtain OAuth2 token'
-      })
-    }
-
     // Implement 8-second timeout to avoid hanging functions
     const controller = new AbortController()
     const timeoutMs = 8000
@@ -42,7 +38,7 @@ module.exports = async (req, res) => {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'ApiKey': apiKey
         }
       })
     } catch (err) {
