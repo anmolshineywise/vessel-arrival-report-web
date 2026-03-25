@@ -25,7 +25,12 @@ export default function ArrivalsPage() {
       const results = await fetchArrivals(date);
       setArrivals(results);
       if (results.length === 0) {
-        setError("No vessel arrivals found for this date.");
+        const formattedDate = new Date(date).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        setError(`No Vessel Arrival on ${formattedDate}`);
       }
     } catch (err: any) {
       setError(err.message || "Failed to fetch arrivals");
@@ -61,10 +66,10 @@ export default function ArrivalsPage() {
 
       {error && (
         <div style={{
-          color: error.includes("No vessel") ? "#666" : "red",
+          color: error.includes("No Vessel Arrival") ? "#666" : "red",
           marginBottom: 16,
           padding: 16,
-          backgroundColor: error.includes("No vessel") ? "#f5f5f5" : "#fff0f0",
+          backgroundColor: error.includes("No Vessel Arrival") ? "#f5f5f5" : "#fff0f0",
           borderRadius: 8
         }}>
           {error}
