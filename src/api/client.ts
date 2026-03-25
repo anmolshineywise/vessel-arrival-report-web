@@ -234,17 +234,40 @@ export async function fetchArrivals(date: string): Promise<VesselArrival[]> {
     throw new Error('Invalid date format. Use YYYY-MM-DD')
   }
 
-  // For GitHub Pages: use Cloudflare Worker URL from env
-  // For local dev / Vercel: use relative proxy path
-  const workerUrl = (import.meta.env as any).VITE_ARRIVALS_WORKER_URL
-  const apiUrl = workerUrl
-    ? `${workerUrl}/arrivals/${encodeURIComponent(date)}`
-    : `/api/arrivals/${encodeURIComponent(date)}`
+  const isProduction = !import.meta.env.DEV
+
+  // API Key for Oceans-X Vessel Arrivals API
+  const apiKey = 'eyJ4NXQjUzI1NiI6Ik16Umpaak14Tmprek9XUmlaR1ppTmpCaU5tVm1PRGd5T1dJNE9URTJaamc1TkRrellUY3pNbUU0TldNeE0yUTRaV1psTlRSalpERmlaVFE0TW1WaFlnPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJhc2xpUmF0YW5AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsiaWQiOjU4OCwidXVpZCI6IjEyN2ViNjI0LTc0MTEtNGI2OS04MTQ0LTdiNWEyNTQ1ZTEzMSJ9LCJpc3MiOiJodHRwczpcL1wvb2NlYW5zLXgubXBhLmdvdi5zZzo5NDQzXC9vYXV0aDJcL3Rva2VuIiwia2V5dHlwZSI6IlBST0RVQ1RJT04iLCJwZXJtaXR0ZWRSZWZlcmVyIjoiIiwidG9rZW5fdHlwZSI6ImFwaUtleSIsInBlcm1pdHRlZElQIjoiIiwiaWF0IjoxNzc0NDE4MjMwLCJqdGkiOiIxODY0MzRmMi1jMTQxLTRjNmItOWUwNS1hOWY3ODBkYzI2MmQifQ==.lyHZazyTLiv-iSFUeI8TFkVpbPKxhFlfv-NNFkWsAOzUacYOI-bg_MkrVadwhhVVJpUTFhIXOmQ7qufjP5CeuQl1a9Ye7SKvFJIk5sNIxUvtqr45wY1Y5FJBOIewxzENJ7C0r3tLO_vwKB97XdsdLjG3pN0uxSnAeZdPcEZExx3ouj0uwF687Z40jCuJ3jvaBWdwL83Jb5awEFfQ9hTOBnTrn13oGlDJrOVhnOTACf85DdmzF9S_VvA_6tgcgOvoA9dTzln4_kk1sywLGKekHrO8eQnGqhhFOsFV0kY8WdsFOUrxbn3kr_e8VczE8ApMglZY_eUsUxysND1H8krpYQ=='
+
+  // In development: use local proxy
+  // In production (GitHub Pages): call API directly
+  if (!isProduction) {
+    try {
+      const proxyUrl = `/api/arrivals/${encodeURIComponent(date)}`
+      console.log('[fetchArrivals] DEV - using proxy:', proxyUrl)
+      const res = await fetch(proxyUrl, { headers: { 'Accept': 'application/json' } })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          console.log('[fetchArrivals] Success via proxy -', data.length, 'arrivals')
+          return data as VesselArrival[]
+        }
+      }
+    } catch (err) {
+      console.warn('[fetchArrivals] Proxy failed, trying direct API:', err)
+    }
+  }
+
+  // Production: call external API directly
+  const externalUrl = `https://oceans-x.mpa.gov.sg/api/v1/vessel/arrivals/1.0.0/date/${encodeURIComponent(date)}`
 
   try {
-    console.log('[fetchArrivals] Calling:', apiUrl)
-    const res = await fetch(apiUrl, {
-      headers: { 'Accept': 'application/json' }
+    console.log('[fetchArrivals] Calling external API:', externalUrl)
+    const res = await fetch(externalUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'ApiKey': apiKey
+      }
     })
 
     if (!res.ok) {
